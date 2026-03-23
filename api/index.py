@@ -92,7 +92,12 @@ def analyze(transcript: str) -> dict:
         max_tokens=1024,
         messages=[{"role": "user", "content": ANALYSIS_PROMPT.format(transcript=transcript)}],
     )
-    return json.loads(message.content[0].text)
+    raw = message.content[0].text.strip()
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1]  # remove opening ```json line
+        raw = raw.rsplit("```", 1)[0]  # remove closing ```
+    return json.loads(raw.strip())
 
 
 @app.post("/api/analyze")
