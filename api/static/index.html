@@ -3,74 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Note Analyzer</title>
+  <title>Voice Note Analyzer — Synpulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --color-primary: #f7682c;
+      --color-primary-hover: #f05100;
+      --color-primary-coral: #fd8d75;
+      --color-primary-blue: #66798c;
+      --color-bg-dark: #121a21;
+      --color-bg-card: #1a2229;
+      --color-neutrals-charcoal: #2d2d2d;
+      --color-neutrals-05: #2f353a;
+      --color-border: #364153;
+      --color-border-light: #394253;
+      --color-text: #f6f7f8;
+      --color-text-muted: #99a1af;
+      --color-text-dim: #6a7282;
+      --color-divider: #c4cbd6;
+      --color-orange-light: #fff7f5;
+      --color-orange-o8: #fdd4c0;
+      --color-green: #00c758;
+      --color-green-dark: #016630;
+      --color-red: #e40014;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Source Sans 3', sans-serif;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .container { max-width: 640px; width: 100%; padding: 2rem; }
-    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .subtitle { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+    body { font-family: var(--font-body); background: var(--color-bg-dark); color: var(--color-text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+    .header { width: 100%; padding: 1.25rem 2rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--color-neutrals-05); }
+    .logo-mark { width: 32px; height: 32px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; }
+    .logo-text { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 600; color: var(--color-text); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--color-primary); }
+
+    .main { max-width: 640px; width: 100%; padding: 2.5rem 2rem 3rem; flex: 1; }
+    h1 { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+    .subtitle { color: var(--color-text-muted); font-size: 0.875rem; margin-bottom: 2rem; }
 
     .mode-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .mode-tab { flex: 1; padding: 0.6rem; border: 1px solid #333; border-radius: 8px; background: transparent; color: #888; font-size: 0.85rem; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.2s; }
-    .mode-tab:hover { border-color: #555; color: #ccc; }
-    .mode-tab.active { border-color: #fff; color: #fff; background: #1a1a1a; }
+    .mode-tab { flex: 1; padding: 0.6rem; border: 1px solid var(--color-border); border-radius: 8px; background: transparent; color: var(--color-text-muted); font-family: var(--font-body); font-size: 0.85rem; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .mode-tab:hover { border-color: var(--color-primary-coral); color: var(--color-text); }
+    .mode-tab.active { border-color: var(--color-primary); color: var(--color-text); background: var(--color-bg-card); }
 
     .panel { display: none; }
     .panel.active { display: block; }
 
-    .drop-zone { border: 2px dashed #333; border-radius: 12px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-    .drop-zone:hover, .drop-zone.drag-over { border-color: #666; background: #111; }
-    .drop-zone p { color: #888; font-size: 0.875rem; }
+    .drop-zone { border: 2px dashed var(--color-border); border-radius: 12px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--color-primary); background: rgba(247, 104, 44, 0.04); }
+    .drop-zone p { color: var(--color-text-muted); font-size: 0.875rem; }
     .drop-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
     .drop-zone input { display: none; }
-    .file-name { color: #ccc; font-size: 0.8rem; margin-top: 0.75rem; word-break: break-all; }
+    .file-name { color: var(--color-text); font-size: 0.8rem; margin-top: 0.75rem; word-break: break-all; }
 
-    .record-area { border: 2px solid #333; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; }
-    .record-btn { width: 72px; height: 72px; border-radius: 50%; border: 3px solid #555; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
-    .record-btn:hover { border-color: #888; }
-    .record-btn .dot { width: 28px; height: 28px; border-radius: 50%; background: #ef4444; transition: all 0.2s; }
-    .record-btn.recording { border-color: #ef4444; }
-    .record-btn.recording .dot { width: 20px; height: 20px; border-radius: 4px; }
-    .record-hint { color: #888; font-size: 0.8rem; margin-top: 1rem; }
-    .record-timer { color: #ef4444; font-size: 1.1rem; font-variant-numeric: tabular-nums; margin-top: 0.75rem; display: none; }
+    .record-area { border: 2px solid var(--color-border); border-radius: 12px; padding: 2.5rem 2rem; text-align: center; }
+    .record-btn { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--color-text-dim); background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .record-btn:hover { border-color: var(--color-primary-coral); }
+    .record-btn .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary); transition: all 0.2s; }
+    .record-btn.recording { border-color: var(--color-primary); }
+    .record-btn.recording .dot { width: 20px; height: 20px; border-radius: 4px; background: var(--color-red); }
+    .record-hint { color: var(--color-text-muted); font-size: 0.8rem; margin-top: 1rem; }
+    .record-timer { color: var(--color-primary); font-family: var(--font-heading); font-size: 1.1rem; font-variant-numeric: tabular-nums; margin-top: 0.75rem; display: none; }
     .record-timer.visible { display: block; }
     .record-playback { margin-top: 1rem; display: none; }
     .record-playback.visible { display: flex; align-items: center; gap: 0.75rem; justify-content: center; }
     .record-playback audio { height: 36px; }
-    .record-discard { background: none; border: 1px solid #333; color: #888; font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; }
-    .record-discard:hover { border-color: #666; color: #ccc; }
+    .record-discard { background: none; border: 1px solid var(--color-border); color: var(--color-text-muted); font-family: var(--font-body); font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .record-discard:hover { border-color: var(--color-primary-coral); color: var(--color-text); }
 
-    button.analyze { display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; border: none; border-radius: 8px; background: #fff; color: #000; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-    button.analyze:disabled { opacity: 0.3; cursor: not-allowed; }
-    .status { text-align: center; color: #888; font-size: 0.85rem; margin-top: 1rem; }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #555; border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    button.analyze { display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; border: none; border-radius: 8px; background: var(--color-primary); color: #fff; font-family: var(--font-heading); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s, opacity 0.2s; }
+    button.analyze:hover:not(:disabled) { background: var(--color-primary-hover); }
+    button.analyze:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .status { text-align: center; color: var(--color-text-muted); font-size: 0.85rem; margin-top: 1rem; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
     .report { margin-top: 2rem; }
-    .card { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
-    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
-    .card p, .card li { font-size: 0.875rem; line-height: 1.6; }
+    .card { background: var(--color-bg-card); border: 1px solid var(--color-neutrals-05); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-family: var(--font-heading); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-primary-coral); margin-bottom: 0.5rem; font-weight: 600; }
+    .card p, .card li { font-size: 0.875rem; line-height: 1.6; color: var(--color-text); }
     .card ul { list-style: none; padding: 0; }
-    .card li { padding: 0.4rem 0; border-bottom: 1px solid #1a1a1a; }
+    .card li { padding: 0.5rem 0; border-bottom: 1px solid var(--color-neutrals-05); }
     .card li:last-child { border: none; }
-    .owner { color: #888; font-size: 0.8rem; }
-    .prob { font-size: 2rem; font-weight: 700; }
-    .prob-low { color: #ef4444; }
-    .prob-mid { color: #f59e0b; }
-    .prob-high { color: #22c55e; }
-    .reasoning { color: #888; font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
-    .error { color: #ef4444; text-align: center; margin-top: 1rem; font-size: 0.85rem; }
-    .transcript-toggle { color: #555; font-size: 0.8rem; cursor: pointer; text-align: center; margin-top: 0.5rem; }
-    .transcript-toggle:hover { color: #888; }
-    .transcript-text { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: #777; line-height: 1.6; white-space: pre-wrap; }
+    .owner { color: var(--color-text-muted); font-size: 0.8rem; }
+    .prob { font-family: var(--font-heading); font-size: 2.25rem; font-weight: 700; }
+    .prob-low { color: var(--color-red); }
+    .prob-mid { color: var(--color-primary); }
+    .prob-high { color: var(--color-green); }
+    .reasoning { color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
+    .error { color: var(--color-red); text-align: center; margin-top: 1rem; font-size: 0.85rem; }
+    .transcript-toggle { color: var(--color-text-dim); font-size: 0.8rem; cursor: pointer; text-align: center; margin-top: 0.5rem; transition: color 0.2s; }
+    .transcript-toggle:hover { color: var(--color-primary-coral); }
+    .transcript-text { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.6; white-space: pre-wrap; }
     .transcript-text.visible { display: block; }
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+    .footer { width: 100%; padding: 1rem 2rem; border-top: 1px solid var(--color-neutrals-05); text-align: center; }
+    .footer span { color: var(--color-text-dim); font-size: 0.75rem; }
+    .footer span a { color: var(--color-primary-coral); text-decoration: none; }
+    .footer span a:hover { color: var(--color-primary); }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="logo-text">synpulse <span>voice</span></div>
+  </div>
+
+  <div class="main">
     <h1>Voice Note Analyzer</h1>
     <p class="subtitle">Record or upload a voice note to get sales intelligence powered by AI</p>
 
@@ -95,7 +146,7 @@
       <div class="drop-zone" id="dropZone">
         <span class="icon">&#128193;</span>
         <p>Drop an audio file here or click to browse</p>
-        <p style="color:#555;font-size:0.75rem;margin-top:0.25rem">MP3, M4A, WAV, WebM &middot; Max 25 MB</p>
+        <p style="color:var(--color-text-dim);font-size:0.75rem;margin-top:0.25rem">MP3, M4A, WAV, WebM &middot; Max 25 MB</p>
         <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.webm,audio/*">
         <div class="file-name" id="fileName"></div>
       </div>
@@ -105,6 +156,10 @@
     <div class="status" id="status"></div>
     <div class="error" id="error"></div>
     <div class="report" id="report"></div>
+  </div>
+
+  <div class="footer">
+    <span>Powered by <a href="https://www.synpulse.com" target="_blank">Synpulse</a></span>
   </div>
 
 <script>
