@@ -10,12 +10,37 @@
     .container { max-width: 640px; width: 100%; padding: 2rem; }
     h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
     .subtitle { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+
+    .mode-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .mode-tab { flex: 1; padding: 0.6rem; border: 1px solid #333; border-radius: 8px; background: transparent; color: #888; font-size: 0.85rem; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .mode-tab:hover { border-color: #555; color: #ccc; }
+    .mode-tab.active { border-color: #fff; color: #fff; background: #1a1a1a; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
     .drop-zone { border: 2px dashed #333; border-radius: 12px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
     .drop-zone:hover, .drop-zone.drag-over { border-color: #666; background: #111; }
     .drop-zone p { color: #888; font-size: 0.875rem; }
     .drop-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
     .drop-zone input { display: none; }
     .file-name { color: #ccc; font-size: 0.8rem; margin-top: 0.75rem; word-break: break-all; }
+
+    .record-area { border: 2px solid #333; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; }
+    .record-btn { width: 72px; height: 72px; border-radius: 50%; border: 3px solid #555; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+    .record-btn:hover { border-color: #888; }
+    .record-btn .dot { width: 28px; height: 28px; border-radius: 50%; background: #ef4444; transition: all 0.2s; }
+    .record-btn.recording { border-color: #ef4444; }
+    .record-btn.recording .dot { width: 20px; height: 20px; border-radius: 4px; }
+    .record-hint { color: #888; font-size: 0.8rem; margin-top: 1rem; }
+    .record-timer { color: #ef4444; font-size: 1.1rem; font-variant-numeric: tabular-nums; margin-top: 0.75rem; display: none; }
+    .record-timer.visible { display: block; }
+    .record-playback { margin-top: 1rem; display: none; }
+    .record-playback.visible { display: flex; align-items: center; gap: 0.75rem; justify-content: center; }
+    .record-playback audio { height: 36px; }
+    .record-discard { background: none; border: 1px solid #333; color: #888; font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; }
+    .record-discard:hover { border-color: #666; color: #ccc; }
+
     button.analyze { display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; border: none; border-radius: 8px; background: #fff; color: #000; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
     button.analyze:disabled { opacity: 0.3; cursor: not-allowed; }
     .status { text-align: center; color: #888; font-size: 0.85rem; margin-top: 1rem; }
@@ -39,19 +64,41 @@
     .transcript-toggle:hover { color: #888; }
     .transcript-text { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: #777; line-height: 1.6; white-space: pre-wrap; }
     .transcript-text.visible { display: block; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Voice Note Analyzer</h1>
-    <p class="subtitle">Upload a voice note to get sales intelligence powered by AI</p>
+    <p class="subtitle">Record or upload a voice note to get sales intelligence powered by AI</p>
 
-    <div class="drop-zone" id="dropZone">
-      <span class="icon">&#127908;</span>
-      <p>Drop an audio file here or click to browse</p>
-      <p style="color:#555;font-size:0.75rem;margin-top:0.25rem">MP3, M4A, WAV, WebM &middot; Max 25 MB</p>
-      <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.webm,audio/*">
-      <div class="file-name" id="fileName"></div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="record">Record</button>
+      <button class="mode-tab" data-mode="upload">Upload</button>
+    </div>
+
+    <div class="panel active" id="recordPanel">
+      <div class="record-area">
+        <button class="record-btn" id="recordBtn"><span class="dot"></span></button>
+        <div class="record-hint" id="recordHint">Click to start recording</div>
+        <div class="record-timer" id="recordTimer">00:00</div>
+        <div class="record-playback" id="recordPlayback">
+          <audio id="recordAudio" controls></audio>
+          <button class="record-discard" id="discardBtn">Discard</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="uploadPanel">
+      <div class="drop-zone" id="dropZone">
+        <span class="icon">&#128193;</span>
+        <p>Drop an audio file here or click to browse</p>
+        <p style="color:#555;font-size:0.75rem;margin-top:0.25rem">MP3, M4A, WAV, WebM &middot; Max 25 MB</p>
+        <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.webm,audio/*">
+        <div class="file-name" id="fileName"></div>
+      </div>
     </div>
 
     <button class="analyze" id="analyzeBtn" disabled>Analyze</button>
@@ -68,8 +115,30 @@ const analyzeBtn = document.getElementById('analyzeBtn');
 const status = document.getElementById('status');
 const error = document.getElementById('error');
 const report = document.getElementById('report');
-let selectedFile = null;
+const recordBtn = document.getElementById('recordBtn');
+const recordHint = document.getElementById('recordHint');
+const recordTimer = document.getElementById('recordTimer');
+const recordPlayback = document.getElementById('recordPlayback');
+const recordAudio = document.getElementById('recordAudio');
+const discardBtn = document.getElementById('discardBtn');
 
+let selectedFile = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let timerInterval = null;
+let recordStart = 0;
+
+// Tab switching
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.mode + 'Panel').classList.add('active');
+  });
+});
+
+// Upload panel
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -88,6 +157,80 @@ function setFile(f) {
   report.innerHTML = '';
 }
 
+// Record panel
+recordBtn.addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+});
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMime() });
+
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+      const ext = mediaRecorder.mimeType.includes('webm') ? 'webm' : 'mp4';
+      selectedFile = new File([blob], `recording.${ext}`, { type: mediaRecorder.mimeType });
+      recordAudio.src = URL.createObjectURL(blob);
+      recordPlayback.classList.add('visible');
+      analyzeBtn.disabled = false;
+      recordHint.textContent = 'Recording saved';
+    };
+
+    mediaRecorder.start();
+    recordBtn.classList.add('recording');
+    recordHint.innerHTML = '<span class="recording-pulse">Recording...</span>';
+    recordPlayback.classList.remove('visible');
+    analyzeBtn.disabled = true;
+    error.textContent = '';
+    report.innerHTML = '';
+
+    recordStart = Date.now();
+    recordTimer.classList.add('visible');
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+  } catch (e) {
+    error.textContent = 'Microphone access denied. Please allow microphone access and try again.';
+  }
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  recordBtn.classList.remove('recording');
+  clearInterval(timerInterval);
+}
+
+function updateTimer() {
+  const elapsed = Math.floor((Date.now() - recordStart) / 1000);
+  const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const secs = String(elapsed % 60).padStart(2, '0');
+  recordTimer.textContent = mins + ':' + secs;
+}
+
+discardBtn.addEventListener('click', () => {
+  selectedFile = null;
+  recordPlayback.classList.remove('visible');
+  recordTimer.classList.remove('visible');
+  recordHint.textContent = 'Click to start recording';
+  analyzeBtn.disabled = true;
+  if (recordAudio.src) { URL.revokeObjectURL(recordAudio.src); recordAudio.src = ''; }
+});
+
+function getSupportedMime() {
+  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
+  if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
+  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
+  return '';
+}
+
+// Analyze
 analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
   analyzeBtn.disabled = true;
