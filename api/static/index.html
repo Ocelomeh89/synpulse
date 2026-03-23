@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Note Analyzer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 640px; width: 100%; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+    .drop-zone { border: 2px dashed #333; border-radius: 12px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #666; background: #111; }
+    .drop-zone p { color: #888; font-size: 0.875rem; }
+    .drop-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+    .drop-zone input { display: none; }
+    .file-name { color: #ccc; font-size: 0.8rem; margin-top: 0.75rem; word-break: break-all; }
+    button.analyze { display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; border: none; border-radius: 8px; background: #fff; color: #000; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    button.analyze:disabled { opacity: 0.3; cursor: not-allowed; }
+    .status { text-align: center; color: #888; font-size: 0.85rem; margin-top: 1rem; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #555; border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .report { margin-top: 2rem; }
+    .card { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
+    .card p, .card li { font-size: 0.875rem; line-height: 1.6; }
+    .card ul { list-style: none; padding: 0; }
+    .card li { padding: 0.4rem 0; border-bottom: 1px solid #1a1a1a; }
+    .card li:last-child { border: none; }
+    .owner { color: #888; font-size: 0.8rem; }
+    .prob { font-size: 2rem; font-weight: 700; }
+    .prob-low { color: #ef4444; }
+    .prob-mid { color: #f59e0b; }
+    .prob-high { color: #22c55e; }
+    .reasoning { color: #888; font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
+    .error { color: #ef4444; text-align: center; margin-top: 1rem; font-size: 0.85rem; }
+    .transcript-toggle { color: #555; font-size: 0.8rem; cursor: pointer; text-align: center; margin-top: 0.5rem; }
+    .transcript-toggle:hover { color: #888; }
+    .transcript-text { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: #777; line-height: 1.6; white-space: pre-wrap; }
+    .transcript-text.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Voice Note Analyzer</h1>
+    <p class="subtitle">Upload a voice note to get sales intelligence powered by AI</p>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="icon">&#127908;</span>
+      <p>Drop an audio file here or click to browse</p>
+      <p style="color:#555;font-size:0.75rem;margin-top:0.25rem">MP3, M4A, WAV, WebM &middot; Max 25 MB</p>
+      <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.webm,audio/*">
+      <div class="file-name" id="fileName"></div>
+    </div>
+
+    <button class="analyze" id="analyzeBtn" disabled>Analyze</button>
+    <div class="status" id="status"></div>
+    <div class="error" id="error"></div>
+    <div class="report" id="report"></div>
+  </div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileName = document.getElementById('fileName');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const status = document.getElementById('status');
+const error = document.getElementById('error');
+const report = document.getElementById('report');
+let selectedFile = null;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  fileName.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)';
+  analyzeBtn.disabled = false;
+  error.textContent = '';
+  report.innerHTML = '';
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  analyzeBtn.disabled = true;
+  error.textContent = '';
+  report.innerHTML = '';
+  status.innerHTML = '<span class="spinner"></span>Transcribing and analyzing...';
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  try {
+    const res = await fetch('/api/analyze', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Request failed');
+    }
+    const data = await res.json();
+    renderReport(data);
+  } catch (e) {
+    error.textContent = e.message;
+  } finally {
+    status.innerHTML = '';
+    analyzeBtn.disabled = false;
+  }
+});
+
+function renderReport(data) {
+  const r = data.report;
+  const pct = r.closing_probability.percentage;
+  const pctClass = pct < 30 ? 'prob-low' : pct < 65 ? 'prob-mid' : 'prob-high';
+
+  let actionsHtml = r.action_points.map(a =>
+    `<li><strong>${esc(a.task)}</strong><br><span class="owner">${esc(a.owner)} &middot; ${esc(a.deadline)}</span></li>`
+  ).join('');
+
+  report.innerHTML = `
+    <div class="card"><h2>Key Client</h2><p>${esc(r.key_client)}</p></div>
+    <div class="card"><h2>Executive Summary</h2><p>${esc(r.summary)}</p></div>
+    <div class="card"><h2>Action Points</h2><ul>${actionsHtml}</ul></div>
+    <div class="card">
+      <h2>Closing Probability</h2>
+      <div class="prob ${pctClass}">${pct}%</div>
+      <div class="reasoning">${esc(r.closing_probability.reasoning)}</div>
+    </div>
+    <div class="transcript-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">Show transcript</div>
+    <div class="transcript-text">${esc(data.transcript)}</div>
+  `;
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
