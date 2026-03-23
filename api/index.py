@@ -95,9 +95,33 @@ def analyze(transcript: str) -> dict:
     raw = message.content[0].text.strip()
     # Strip markdown code fences if present
     if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1]  # remove opening ```json line
-        raw = raw.rsplit("```", 1)[0]  # remove closing ```
-    return json.loads(raw.strip())
+        raw = raw.split("\n", 1)[1]
+        raw = raw.rsplit("```", 1)[0]
+    raw = raw.strip()
+    # Extract JSON object even if surrounded by extra text
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        return _fallback_report()
+    try:
+        report = json.loads(raw[start:end])
+    except json.JSONDecodeError:
+        return _fallback_report()
+    # Ensure all expected keys exist
+    report.setdefault("key_client", "")
+    report.setdefault("action_points", [])
+    report.setdefault("summary", "")
+    report.setdefault("closing_probability", {"percentage": 0, "reasoning": ""})
+    return report
+
+
+def _fallback_report() -> dict:
+    return {
+        "key_client": "",
+        "action_points": [],
+        "summary": "Analysis could not be completed. Please review the transcript manually.",
+        "closing_probability": {"percentage": 0, "reasoning": "Unable to determine."},
+    }
 
 
 @app.post("/api/analyze")

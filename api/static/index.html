@@ -101,6 +101,10 @@
     .transcript-toggle:hover { color: var(--color-primary-coral); }
     .transcript-text { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.6; white-space: pre-wrap; }
     .transcript-text.visible { display: block; }
+    .editable-field { display: flex; align-items: center; gap: 0.5rem; }
+    .editable-field input { flex: 1; background: var(--color-bg-dark); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.4rem 0.6rem; color: var(--color-text); font-family: var(--font-body); font-size: 0.875rem; }
+    .editable-field input:focus { outline: none; border-color: var(--color-primary); }
+    .missing-tag { display: inline-block; background: rgba(247, 104, 44, 0.15); color: var(--color-primary); font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; }
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
@@ -321,8 +325,13 @@ function renderReport(data) {
     `<li><strong>${esc(a.task)}</strong><br><span class="owner">${esc(a.owner)} &middot; ${esc(a.deadline)}</span></li>`
   ).join('');
 
+  const clientMissing = !r.key_client || r.key_client === 'Unknown';
+  const clientHtml = clientMissing
+    ? `<div class="editable-field"><input type="text" id="clientInput" placeholder="Enter client name..."><span class="missing-tag">Manual entry</span></div>`
+    : `<p>${esc(r.key_client)}</p>`;
+
   report.innerHTML = `
-    <div class="card"><h2>Key Client</h2><p>${esc(r.key_client)}</p></div>
+    <div class="card"><h2>Key Client</h2>${clientHtml}</div>
     <div class="card"><h2>Executive Summary</h2><p>${esc(r.summary)}</p></div>
     <div class="card"><h2>Action Points</h2><ul>${actionsHtml}</ul></div>
     <div class="card">
