@@ -52,11 +52,18 @@ TRANSCRIPT:
 {transcript}
 """
 
-ALLOWED_TYPES = {
+ALLOWED_BASE_TYPES = {
     "audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a", "audio/x-m4a",
     "audio/wav", "audio/x-wav", "audio/webm", "video/webm",
+    "audio/ogg", "audio/aac", "audio/flac",
 }
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB (OpenAI Whisper API limit)
+
+
+def _is_allowed_type(content_type: str) -> bool:
+    """Check content type, ignoring codec params like ';codecs=opus'."""
+    base = content_type.split(";")[0].strip().lower()
+    return base in ALLOWED_BASE_TYPES
 
 
 def transcribe(file_bytes: bytes, filename: str) -> str:
@@ -90,7 +97,7 @@ def analyze(transcript: str) -> dict:
 
 @app.post("/api/analyze")
 async def analyze_audio(file: UploadFile = File(...)):
-    if file.content_type and file.content_type not in ALLOWED_TYPES:
+    if file.content_type and not _is_allowed_type(file.content_type):
         raise HTTPException(400, f"Unsupported file type: {file.content_type}")
 
     file_bytes = await file.read()
